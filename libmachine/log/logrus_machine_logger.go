@@ -2,10 +2,13 @@ package log
 
 import (
 	"io"
+	"os"
 
 	"fmt"
 
 	"sync"
+
+	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
 )
@@ -21,6 +24,7 @@ func NewLogrusMachineLogger() MachineLogger {
 	logrusLogger := logrus.New()
 	logrusLogger.Level = logrus.InfoLevel
 	logrusLogger.Formatter = new(MachineFormatter)
+	logrusLogger.Hooks.Add(NewFileHook(filepath.Join(os.Getenv("HOME"), ".docker", "machine", "machine.log")))
 	return &LogrusMachineLogger{[]string{}, &sync.Mutex{}, logrusLogger}
 }
 
