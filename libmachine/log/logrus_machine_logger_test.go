@@ -11,34 +11,41 @@ import (
 )
 
 func TestDefaultLevelIsInfo(t *testing.T) {
-	testLogger := NewLogrusMachineLogger().(*LogrusMachineLogger)
-	assert.Equal(t, testLogger.Logger().Level, logrus.InfoLevel)
+	errLogger, outLogger := NewLogrusMachineLogger().(*LogrusMachineLogger).Logger()
+	assert.Equal(t, errLogger.Level, logrus.InfoLevel)
+	assert.Equal(t, outLogger.Level, logrus.InfoLevel)
 }
 
 func TestSetDebugToTrue(t *testing.T) {
 	testLogger := NewLogrusMachineLogger().(*LogrusMachineLogger)
 	testLogger.SetDebug(true)
-	assert.Equal(t, testLogger.Logger().Level, logrus.DebugLevel)
+	errLogger, outLogger := testLogger.Logger()
+	assert.Equal(t, errLogger.Level, logrus.DebugLevel)
+	assert.Equal(t, outLogger.Level, logrus.InfoLevel)
 }
 
 func TestSetDebugToFalse(t *testing.T) {
 	testLogger := NewLogrusMachineLogger().(*LogrusMachineLogger)
 	testLogger.SetDebug(true)
 	testLogger.SetDebug(false)
-	assert.Equal(t, testLogger.Logger().Level, logrus.InfoLevel)
+	errLogger, outLogger := testLogger.Logger()
+	assert.Equal(t, errLogger.Level, logrus.InfoLevel)
+	assert.Equal(t, outLogger.Level, logrus.InfoLevel)
 }
 
 func TestSetSilenceOutput(t *testing.T) {
 	testLogger := NewLogrusMachineLogger().(*LogrusMachineLogger)
 	testLogger.RedirectStdOutToStdErr()
-	assert.Equal(t, testLogger.Logger().Level, logrus.ErrorLevel)
+	errLogger, outLogger := testLogger.Logger()
+	assert.Equal(t, errLogger.Level, logrus.InfoLevel)
+	assert.Equal(t, outLogger.Level, logrus.ErrorLevel)
 }
 
 func TestDebugOutput(t *testing.T) {
 	testLogger := NewLogrusMachineLogger()
 	testLogger.SetDebug(true)
 
-	result := captureOutput(testLogger, func() { testLogger.Debug("debug") })
+	result := captureStdErr(testLogger, func() { testLogger.Debug("debug") })
 
 	assert.Equal(t, result, "debug")
 }
@@ -46,7 +53,7 @@ func TestDebugOutput(t *testing.T) {
 func TestInfoOutput(t *testing.T) {
 	testLogger := NewLogrusMachineLogger()
 
-	result := captureOutput(testLogger, func() { testLogger.Info("info") })
+	result := captureStdOut(testLogger, func() { testLogger.Info("info") })
 
 	assert.Equal(t, result, "info")
 }
@@ -54,7 +61,7 @@ func TestInfoOutput(t *testing.T) {
 func TestWarnOutput(t *testing.T) {
 	testLogger := NewLogrusMachineLogger()
 
-	result := captureOutput(testLogger, func() { testLogger.Warn("warn") })
+	result := captureStdErr(testLogger, func() { testLogger.Warn("warn") })
 
 	assert.Equal(t, result, "warn")
 }
@@ -62,7 +69,7 @@ func TestWarnOutput(t *testing.T) {
 func TestErrorOutput(t *testing.T) {
 	testLogger := NewLogrusMachineLogger()
 
-	result := captureOutput(testLogger, func() { testLogger.Error("error") })
+	result := captureStdErr(testLogger, func() { testLogger.Error("error") })
 
 	assert.Equal(t, result, "error")
 }
@@ -79,10 +86,19 @@ func TestEntriesAreCollected(t *testing.T) {
 	assert.Equal(t, "error", testLogger.History()[2])
 }
 
-func captureOutput(testLogger MachineLogger, lambda func()) string {
+func captureStdErr(testLogger MachineLogger, lambda func()) string {
 	pipeReader, pipeWriter := io.Pipe()
 	scanner := bufio.NewScanner(pipeReader)
-	testLogger.SetOutput(pipeWriter)
+	testLogger.SetErrWriter(pipeWriter)
+	go lambda()
+	scanner.Scan()
+	return scanner.Text()
+}
+
+func captureStdOut(testLogger MachineLogger, lambda func()) string {
+	pipeReader, pipeWriter := io.Pipe()
+	scanner := bufio.NewScanner(pipeReader)
+	testLogger.SetOutWriter(pipeWriter)
 	go lambda()
 	scanner.Scan()
 	return scanner.Text()

@@ -7,92 +7,109 @@ import (
 
 	"sync"
 
+	"os"
+
 	"github.com/Sirupsen/logrus"
 )
 
 type LogrusMachineLogger struct {
-	history     []string
-	historyLock sync.Locker
-	logger      *logrus.Logger
+	history      []string
+	historyLock  sync.Locker
+	stdErrlogger *logrus.Logger
+	stdOutlogger *logrus.Logger
 }
 
 // NewLogrusMachineLogger creates the MachineLogger implementation used by the docker-machine
 func NewLogrusMachineLogger() MachineLogger {
-	logrusLogger := logrus.New()
-	logrusLogger.Level = logrus.InfoLevel
-	logrusLogger.Formatter = new(MachineFormatter)
-	return &LogrusMachineLogger{[]string{}, &sync.Mutex{}, logrusLogger}
+	return &LogrusMachineLogger{
+		history:      []string{},
+		historyLock:  &sync.Mutex{},
+		stdErrlogger: newLogger(os.Stderr),
+		stdOutlogger: newLogger(os.Stdout),
+	}
+}
+
+func newLogger(out io.Writer) *logrus.Logger {
+	logger := logrus.New()
+	logger.Level = logrus.InfoLevel
+	logger.Out = out
+	logger.Formatter = new(MachineFormatter)
+	return logger
 }
 
 // RedirectStdOutToStdErr prevents any log from corrupting the output
 func (ml *LogrusMachineLogger) RedirectStdOutToStdErr() {
-	ml.logger.Level = logrus.ErrorLevel
+	ml.stdOutlogger.Level = logrus.ErrorLevel
 }
 
 func (ml *LogrusMachineLogger) SetDebug(debug bool) {
 	if debug {
-		ml.logger.Level = logrus.DebugLevel
+		ml.stdErrlogger.Level = logrus.DebugLevel
 	} else {
-		ml.logger.Level = logrus.InfoLevel
+		ml.stdErrlogger.Level = logrus.InfoLevel
 	}
 }
 
-func (ml *LogrusMachineLogger) SetOutput(out io.Writer) {
-	ml.logger.Out = out
+func (ml *LogrusMachineLogger) SetErrWriter(out io.Writer) {
+	ml.stdErrlogger.Out = out
 }
 
-func (ml *LogrusMachineLogger) Logger() *logrus.Logger {
-	return ml.logger
+func (ml *LogrusMachineLogger) SetOutWriter(out io.Writer) {
+	ml.stdOutlogger.Out = out
+}
+
+func (ml *LogrusMachineLogger) Logger() (*logrus.Logger, *logrus.Logger) {
+	return ml.stdErrlogger, ml.stdOutlogger
 }
 
 func (ml *LogrusMachineLogger) Debug(args ...interface{}) {
 	ml.record(args...)
-	ml.logger.Debug(args...)
+	ml.stdErrlogger.Debug(args...)
 }
 
 func (ml *LogrusMachineLogger) Debugf(fmtString string, args ...interface{}) {
 	ml.recordf(fmtString, args...)
-	ml.logger.Debugf(fmtString, args...)
+	ml.stdErrlogger.Debugf(fmtString, args...)
 }
 
 func (ml *LogrusMachineLogger) Error(args ...interface{}) {
 	ml.record(args...)
-	ml.logger.Error(args...)
+	ml.stdErrlogger.Error(args...)
 }
 
 func (ml *LogrusMachineLogger) Errorf(fmtString string, args ...interface{}) {
 	ml.recordf(fmtString, args...)
-	ml.logger.Errorf(fmtString, args...)
+	ml.stdErrlogger.Errorf(fmtString, args...)
 }
 
 func (ml *LogrusMachineLogger) Info(args ...interface{}) {
 	ml.record(args...)
-	ml.logger.Info(args...)
+	ml.stdOutlogger.Info(args...)
 }
 
 func (ml *LogrusMachineLogger) Infof(fmtString string, args ...interface{}) {
 	ml.recordf(fmtString, args...)
-	ml.logger.Infof(fmtString, args...)
+	ml.stdOutlogger.Infof(fmtString, args...)
 }
 
 func (ml *LogrusMachineLogger) Fatal(args ...interface{}) {
 	ml.record(args...)
-	ml.logger.Fatal(args...)
+	ml.stdErrlogger.Fatal(args...)
 }
 
 func (ml *LogrusMachineLogger) Fatalf(fmtString string, args ...interface{}) {
 	ml.recordf(fmtString, args...)
-	ml.logger.Fatalf(fmtString, args...)
+	ml.stdErrlogger.Fatalf(fmtString, args...)
 }
 
 func (ml *LogrusMachineLogger) Warn(args ...interface{}) {
 	ml.record(args...)
-	ml.logger.Warn(args...)
+	ml.stdErrlogger.Warn(args...)
 }
 
 func (ml *LogrusMachineLogger) Warnf(fmtString string, args ...interface{}) {
 	ml.recordf(fmtString, args...)
-	ml.logger.Warnf(fmtString, args...)
+	ml.stdErrlogger.Warnf(fmtString, args...)
 }
 
 func (ml *LogrusMachineLogger) History() []string {

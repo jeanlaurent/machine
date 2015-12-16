@@ -29,8 +29,11 @@ func (ml *FmtMachineLogger) SetDebug(debug bool) {
 	ml.debug = debug
 }
 
-func (ml *FmtMachineLogger) SetOutput(out io.Writer) {
+func (ml *FmtMachineLogger) SetOutWriter(out io.Writer) {
 	ml.out = out
+}
+
+func (ml *FmtMachineLogger) SetErrWriter(out io.Writer) {
 	ml.err = out
 }
 

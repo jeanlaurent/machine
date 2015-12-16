@@ -10,7 +10,7 @@ func TestFmtDebug(t *testing.T) {
 	testLogger := NewFmtMachineLogger()
 	testLogger.SetDebug(true)
 
-	result := captureOutput(testLogger, func() { testLogger.Debug("debug") })
+	result := captureStdErr(testLogger, func() { testLogger.Debug("debug") })
 
 	assert.Equal(t, result, "debug")
 }
@@ -18,7 +18,7 @@ func TestFmtDebug(t *testing.T) {
 func TestFmtInfo(t *testing.T) {
 	testLogger := NewFmtMachineLogger()
 
-	result := captureOutput(testLogger, func() { testLogger.Info("info") })
+	result := captureStdOut(testLogger, func() { testLogger.Info("info") })
 
 	assert.Equal(t, result, "info")
 }
@@ -26,7 +26,7 @@ func TestFmtInfo(t *testing.T) {
 func TestFmtWarn(t *testing.T) {
 	testLogger := NewFmtMachineLogger()
 
-	result := captureOutput(testLogger, func() { testLogger.Warn("warn") })
+	result := captureStdOut(testLogger, func() { testLogger.Warn("warn") })
 
 	assert.Equal(t, result, "warn")
 }
@@ -34,7 +34,7 @@ func TestFmtWarn(t *testing.T) {
 func TestFmtError(t *testing.T) {
 	testLogger := NewFmtMachineLogger()
 
-	result := captureOutput(testLogger, func() { testLogger.Error("error") })
+	result := captureStdOut(testLogger, func() { testLogger.Error("error") })
 
 	assert.Equal(t, result, "error")
 }

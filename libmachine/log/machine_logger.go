@@ -7,7 +7,9 @@ type MachineLogger interface {
 
 	SetDebug(debug bool)
 
-	SetOutput(io.Writer)
+	SetOutWriter(io.Writer)
+
+	SetErrWriter(io.Writer)
 
 	Debug(args ...interface{})
 	Debugf(fmtString string, args ...interface{})
